@@ -6,14 +6,7 @@ import usePlacesAutocomplete, {
   getLatLng,
   getDetails
 } from 'use-places-autocomplete';
-import {
-  Combobox,
-  ComboboxInput,
-  ComboboxPopover,
-  ComboboxList,
-  ComboboxOption,
-} from '@reach/combobox';
-import '@reach/combobox/styles.css';
+import { Combobox } from '@headlessui/react';
 
 interface PlaceSearchProps {
   onPlaceSelect: (place: google.maps.places.PlaceResult) => void;
@@ -22,6 +15,7 @@ interface PlaceSearchProps {
 
 export default function PlaceSearch({ onPlaceSelect, setCenter }: PlaceSearchProps) {
   const [initError, setInitError] = useState<string>('');
+  const [query, setQuery] = useState('');
 
   const {
     ready,
@@ -63,11 +57,13 @@ export default function PlaceSearch({ onPlaceSelect, setCenter }: PlaceSearchPro
   const handleInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     console.log('Input change:', e.target.value);
     setValue(e.target.value);
+    setQuery(e.target.value);
   };
 
   const handleSelect = async (description: string) => {
     setValue(description, false);
     clearSuggestions();
+    setQuery(description);
 
     try {
       const results = await getGeocode({ address: description });
@@ -98,6 +94,7 @@ export default function PlaceSearch({ onPlaceSelect, setCenter }: PlaceSearchPro
       
       onPlaceSelect(placeResult);
       setValue('');
+      setQuery('');
     } catch (error) {
       console.error('Error selecting place:', error);
     }
@@ -115,12 +112,11 @@ export default function PlaceSearch({ onPlaceSelect, setCenter }: PlaceSearchPro
 
   return (
     <div className="w-full">
-      <Combobox onSelect={handleSelect}>
+      <Combobox value={query} onChange={handleSelect}>
         <div className="relative w-full">
-          <ComboboxInput
+          <Combobox.Input
             value={value}
             onChange={handleInput}
-            disabled={!ready}
             className="w-full p-2 pl-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             placeholder={initError || (ready ? "Search for places in Prague..." : "Loading...")}
             autoComplete="off"
@@ -130,29 +126,31 @@ export default function PlaceSearch({ onPlaceSelect, setCenter }: PlaceSearchPro
             {ready ? '🔍' : '⌛'}
           </span>
           {status === "OK" && (
-            <ComboboxPopover className="absolute z-50 w-full bg-white shadow-lg rounded-md mt-1 border border-gray-200">
-              <ComboboxList className="py-2 max-h-96 overflow-auto">
-                {data.map(({ place_id, description, structured_formatting, types = [] }) => (
-                  <ComboboxOption
-                    key={place_id}
-                    value={description}
-                    className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
-                  >
-                    <div className="flex items-start gap-2">
-                      <span className="mt-0.5 text-lg">{getPlaceIcon(types)}</span>
-                      <div className="flex-1">
-                        <div className="font-medium">
-                          {structured_formatting?.main_text || description.split(',')[0]}
-                        </div>
-                        <div className="text-xs text-gray-600 mt-0.5">
-                          {structured_formatting?.secondary_text || description.split(',').slice(1).join(',')}
-                        </div>
+            <Combobox.Options className="absolute z-50 w-full bg-white shadow-lg rounded-md mt-1 border border-gray-200 max-h-96 overflow-auto">
+              {data.map(({ place_id, description, structured_formatting, types = [] }) => (
+                <Combobox.Option
+                  key={place_id}
+                  value={description}
+                  className={({ active }: { active: boolean }) =>
+                    `px-4 py-2 cursor-pointer ${
+                      active ? 'bg-blue-50 text-blue-900' : 'text-gray-900'
+                    }`
+                  }
+                >
+                  <div className="flex items-start gap-2">
+                    <span className="mt-0.5 text-lg">{getPlaceIcon(types)}</span>
+                    <div className="flex-1">
+                      <div className="font-medium">
+                        {structured_formatting?.main_text || description.split(',')[0]}
+                      </div>
+                      <div className="text-xs text-gray-600 mt-0.5">
+                        {structured_formatting?.secondary_text || description.split(',').slice(1).join(',')}
                       </div>
                     </div>
-                  </ComboboxOption>
-                ))}
-              </ComboboxList>
-            </ComboboxPopover>
+                  </div>
+                </Combobox.Option>
+              ))}
+            </Combobox.Options>
           )}
         </div>
       </Combobox>
