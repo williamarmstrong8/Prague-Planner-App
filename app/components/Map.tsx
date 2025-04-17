@@ -7,6 +7,12 @@ import type { Place } from './RecommendedPlaces';
 interface MapProps {
   selectedPlace: google.maps.places.PlaceResult | null;
   onPlaceSelect: (place: google.maps.places.PlaceResult) => void;
+  center?: google.maps.LatLngLiteral;
+  markers?: Array<{
+    position: google.maps.LatLngLiteral;
+    title: string;
+    category: string;
+  }>;
 }
 
 const getCategoryEmoji = (category: string): string => {
@@ -43,7 +49,7 @@ const mapContainerStyle = {
   height: '100%'
 };
 
-const center = {
+const defaultCenter = {
   lat: 50.0755,
   lng: 14.4378
 };
@@ -63,8 +69,8 @@ const options = {
   ]
 };
 
-export default function Map({ selectedPlace, onPlaceSelect }: MapProps) {
-  const [markers, setMarkers] = useState<google.maps.LatLngLiteral[]>([]);
+export default function Map({ selectedPlace, onPlaceSelect, center, markers }: MapProps) {
+  const [localMarkers, setLocalMarkers] = useState<google.maps.LatLngLiteral[]>([]);
   const [infoWindow, setInfoWindow] = useState<google.maps.places.PlaceResult | null>(null);
   const mapRef = useRef<google.maps.Map | null>(null);
 
@@ -75,7 +81,7 @@ export default function Map({ selectedPlace, onPlaceSelect }: MapProps) {
 
   const onMapClick = useCallback((e: google.maps.MapMouseEvent) => {
     if (e.latLng) {
-      setMarkers(prev => [...prev, { lat: e.latLng!.lat(), lng: e.latLng!.lng() }]);
+      setLocalMarkers(prev => [...prev, { lat: e.latLng!.lat(), lng: e.latLng!.lng() }]);
     }
   }, []);
 
@@ -90,18 +96,27 @@ export default function Map({ selectedPlace, onPlaceSelect }: MapProps) {
     <GoogleMap
       mapContainerStyle={mapContainerStyle}
       zoom={13}
-      center={selectedPlace?.geometry?.location || center}
+      center={center || selectedPlace?.geometry?.location || defaultCenter}
       onClick={onMapClick}
       onLoad={onMapLoad}
       options={options}
     >
-      {markers.map((marker, index) => (
+      {localMarkers.map((marker, index) => (
         <Marker
           key={index}
           position={marker}
           onClick={() => {
             // You could add place details here if needed
           }}
+        />
+      ))}
+
+      {markers?.map((marker, index) => (
+        <Marker
+          key={`prop-${index}`}
+          position={marker.position}
+          title={marker.title}
+          label={getCategoryEmoji(marker.category)}
         />
       ))}
 
