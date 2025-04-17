@@ -16,4 +16,7 @@ A Next.js application for exploring places in Prague, featuring:
 
 ## Environment Variables
 Required environment variables:
-- `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`: Google Maps Platform API key 
+- `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`: Google Maps Platform API key
+
+## Deployment
+The app is deployed on Vercel and can be accessed at: [Prague Planner App](https://prague-planner-app.vercel.app) 
