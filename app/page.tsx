@@ -2,8 +2,9 @@
 
 import { useState } from 'react';
 import Map from './components/Map';
+import PlaceSearch from './components/PlaceSearch';
 import RecommendedPlaces from './components/RecommendedPlaces';
-import type { Place } from './components/RecommendedPlaces';
+import { Place } from './components/RecommendedPlaces';
 
 // Calculate distance between two points using Haversine formula
 function getDistance(p1: { lat: number; lng: number }, p2: { lat: number; lng: number }): number {
@@ -48,25 +49,36 @@ function optimizeRoute(places: Place[]): Place[] {
 }
 
 export default function Home() {
-  const [selectedPlaces, setSelectedPlaces] = useState<Place[]>([]);
-  const [center, setCenter] = useState({ lat: 50.0755, lng: 14.4378 }); // Prague center
+  const [selectedPlace, setSelectedPlace] = useState<google.maps.places.PlaceResult | null>(null);
+  const [center, setCenter] = useState<google.maps.LatLngLiteral>({
+    lat: 50.0755,
+    lng: 14.4378
+  });
 
-  const handlePlaceSelect = (place: Place) => {
-    setSelectedPlaces(current => {
-      const exists = current.some(p => p.id === place.id);
-      if (exists) {
-        return current.filter(p => p.id !== place.id);
-      }
-      return [...current, place];
-    });
-    setCenter(place.location);
+  const handlePlaceSelect = (place: google.maps.places.PlaceResult) => {
+    setSelectedPlace(place);
+    if (place.geometry?.location) {
+      setCenter({
+        lat: place.geometry.location.lat(),
+        lng: place.geometry.location.lng()
+      });
+    }
   };
 
   const handleExport = () => {
-    if (selectedPlaces.length === 0) return;
+    if (!selectedPlace) return;
 
     // Optimize the route
-    const optimizedPlaces = optimizeRoute([...selectedPlaces]);
+    const optimizedPlaces = optimizeRoute([{
+      id: '',
+      name: selectedPlace.name || '',
+      description: selectedPlace.formatted_address || '',
+      location: {
+        lat: selectedPlace.geometry?.location?.lat() || 0,
+        lng: selectedPlace.geometry?.location?.lng() || 0
+      },
+      category: ''
+    }]);
 
     const baseUrl = 'https://www.google.com/maps/dir/?api=1';
     const origin = encodeURIComponent(optimizedPlaces[0].name);
@@ -80,73 +92,44 @@ export default function Home() {
   };
 
   return (
-    <main className="min-h-screen p-4 md:p-6">
-      <h1 className="text-3xl md:text-4xl font-bold text-center mb-2 title-gradient">Prague City Planner</h1>
-      <p className="text-gray-600 text-center mb-6 max-w-3xl mx-auto">
-        Create your perfect Prague itinerary by selecting places from our curated list. 
-        We'll show them on the map and create an optimized walking route for you to explore the city.
-      </p>
-      
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-[1920px] mx-auto">
-        {/* Left sidebar - Selected Places */}
-        <div className="card p-4">
-          <h2 className="text-2xl font-bold mb-4 title-gradient">Your Places</h2>
-          {selectedPlaces.length === 0 ? (
-            <div className="text-gray-600 space-y-2">
-              <p>Browse and click on places from the list on the right to add them to your itinerary.</p>
-              <p>Once you've selected your destinations, click "Export Route to Google Maps" to get an optimized walking route.</p>
-              <p className="text-sm italic">We'll automatically order your places using a nearest-neighbor algorithm to create the shortest possible route between all locations.</p>
+    <main className="min-h-screen bg-gray-50">
+      <div className="container mx-auto px-4 py-8">
+        <h1 className="text-3xl font-bold text-center mb-8">Prague Planner</h1>
+        
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="md:col-span-2 space-y-6">
+            <div className="card p-4">
+              <h2 className="text-xl font-semibold mb-4">Search Places</h2>
+              <PlaceSearch 
+                onPlaceSelect={handlePlaceSelect} 
+                setCenter={setCenter} 
+              />
             </div>
-          ) : (
-            <>
-              <div className="space-y-2 mb-4">
-                {selectedPlaces.map((place, index) => (
-                  <div key={place.id} className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg hover:bg-gray-100 transition-all">
-                    <span className="font-bold text-blue-600">{index + 1}.</span>
-                    <div className="flex-1">
-                      <h3 className="font-medium text-gray-900">{place.name}</h3>
-                      <p className="text-sm text-gray-600">{place.description}</p>
-                    </div>
-                    <button
-                      onClick={() => handlePlaceSelect(place)}
-                      className="text-gray-400 hover:text-red-500 transition-colors"
-                    >
-                      ✕
-                    </button>
-                  </div>
-                ))}
-              </div>
-              <button
-                onClick={handleExport}
-                className="button-primary w-full flex items-center justify-center gap-2"
-              >
-                <span>Export Route to Google Maps</span>
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M12.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-2.293-2.293a1 1 0 010-1.414z" clipRule="evenodd" />
-                </svg>
-              </button>
-            </>
-          )}
-        </div>
-
-        {/* Center - Map */}
-        <div className="h-[600px] md:h-[750px] md:col-span-1 card overflow-hidden">
-          <Map
-            center={center}
-            markers={selectedPlaces.map(place => ({
-              position: place.location,
-              title: place.name,
-              category: place.category
-            }))}
-          />
-        </div>
-
-        {/* Right sidebar - Recommended Places */}
-        <div className="card p-4">
-          <RecommendedPlaces
-            onPlaceSelect={handlePlaceSelect}
-            selectedPlaces={selectedPlaces}
-          />
+            
+            <div className="card p-4">
+              <h2 className="text-xl font-semibold mb-4">Recommended Places</h2>
+              <RecommendedPlaces
+                onPlaceSelect={handlePlaceSelect}
+                selectedPlace={selectedPlace ? {
+                  id: selectedPlace.place_id || '',
+                  name: selectedPlace.name || '',
+                  description: selectedPlace.formatted_address || '',
+                  category: selectedPlace.types?.[0] || 'Site',
+                  location: {
+                    lat: selectedPlace.geometry?.location?.lat() || 0,
+                    lng: selectedPlace.geometry?.location?.lng() || 0
+                  }
+                } : null}
+              />
+            </div>
+          </div>
+          
+          <div className="h-[600px] md:h-[750px] md:col-span-1 card overflow-hidden">
+            <Map 
+              selectedPlace={selectedPlace}
+              onPlaceSelect={handlePlaceSelect}
+            />
+          </div>
         </div>
       </div>
     </main>

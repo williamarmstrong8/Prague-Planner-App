@@ -2,45 +2,11 @@
 
 import { useRef, useState, useCallback } from 'react';
 import { GoogleMap, useLoadScript, Marker, InfoWindow } from '@react-google-maps/api';
-import type { Place } from './RecommendedPlaces';
 
 interface MapProps {
   selectedPlace: google.maps.places.PlaceResult | null;
   onPlaceSelect: (place: google.maps.places.PlaceResult) => void;
-  center?: google.maps.LatLngLiteral;
-  markers?: Array<{
-    position: google.maps.LatLngLiteral;
-    title: string;
-    category: string;
-  }>;
 }
-
-const getCategoryEmoji = (category: string): string => {
-  switch (category) {
-    case 'Bars':
-      return '🍺';
-    case 'Restaurants':
-      return '🍽️';
-    case 'Museums':
-      return '🏛️';
-    case 'Religious Sites':
-      return '⛪';
-    case 'Landmarks':
-      return '🏰';
-    case 'Squares':
-      return '🏢';
-    case 'Districts':
-      return '🏘️';
-    case 'Architecture':
-      return '🏛️';
-    case 'Parks':
-      return '🌳';
-    case 'Cafes':
-      return '☕';
-    default:
-      return '📍';
-  }
-};
 
 const libraries: ("places")[] = ["places"];
 
@@ -69,8 +35,7 @@ const options = {
   ]
 };
 
-export default function Map({ selectedPlace, onPlaceSelect, center, markers }: MapProps) {
-  const [localMarkers, setLocalMarkers] = useState<google.maps.LatLngLiteral[]>([]);
+export default function Map({ selectedPlace, onPlaceSelect }: MapProps) {
   const [infoWindow, setInfoWindow] = useState<google.maps.places.PlaceResult | null>(null);
   const mapRef = useRef<google.maps.Map | null>(null);
 
@@ -78,12 +43,6 @@ export default function Map({ selectedPlace, onPlaceSelect, center, markers }: M
     googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '',
     libraries
   });
-
-  const onMapClick = useCallback((e: google.maps.MapMouseEvent) => {
-    if (e.latLng) {
-      setLocalMarkers(prev => [...prev, { lat: e.latLng!.lat(), lng: e.latLng!.lng() }]);
-    }
-  }, []);
 
   const onMapLoad = useCallback((map: google.maps.Map) => {
     mapRef.current = map;
@@ -96,30 +55,10 @@ export default function Map({ selectedPlace, onPlaceSelect, center, markers }: M
     <GoogleMap
       mapContainerStyle={mapContainerStyle}
       zoom={13}
-      center={center || selectedPlace?.geometry?.location || defaultCenter}
-      onClick={onMapClick}
+      center={selectedPlace?.geometry?.location || defaultCenter}
       onLoad={onMapLoad}
       options={options}
     >
-      {localMarkers.map((marker, index) => (
-        <Marker
-          key={index}
-          position={marker}
-          onClick={() => {
-            // You could add place details here if needed
-          }}
-        />
-      ))}
-
-      {markers?.map((marker, index) => (
-        <Marker
-          key={`prop-${index}`}
-          position={marker.position}
-          title={marker.title}
-          label={getCategoryEmoji(marker.category)}
-        />
-      ))}
-
       {selectedPlace?.geometry?.location && (
         <Marker
           position={selectedPlace.geometry.location}
