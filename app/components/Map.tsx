@@ -1,16 +1,12 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
-import { GoogleMap, Marker, useJsApiLoader, Libraries } from '@react-google-maps/api';
+import { useRef, useState, useCallback } from 'react';
+import { GoogleMap, useLoadScript, Marker, InfoWindow } from '@react-google-maps/api';
 import type { Place } from './RecommendedPlaces';
 
 interface MapProps {
-  center: google.maps.LatLngLiteral;
-  markers?: Array<{
-    position: google.maps.LatLngLiteral;
-    title: string;
-    category: string;
-  }>;
+  selectedPlace: google.maps.places.PlaceResult | null;
+  onPlaceSelect: (place: google.maps.places.PlaceResult) => void;
 }
 
 const getCategoryEmoji = (category: string): string => {
@@ -40,78 +36,96 @@ const getCategoryEmoji = (category: string): string => {
   }
 };
 
-const libraries: Libraries = ["places"];
+const libraries: ("places")[] = ["places"];
 
-export default function Map({ center, markers = [] }: MapProps) {
-  const { isLoaded } = useJsApiLoader({
-    id: 'google-map-script',
-    googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '',
+const mapContainerStyle = {
+  width: '100%',
+  height: '100%'
+};
+
+const center = {
+  lat: 50.0755,
+  lng: 14.4378
+};
+
+const options = {
+  disableDefaultUI: true,
+  zoomControl: true,
+  mapTypeControl: false,
+  streetViewControl: false,
+  fullscreenControl: false,
+  styles: [
+    {
+      featureType: "poi",
+      elementType: "labels",
+      stylers: [{ visibility: "off" }]
+    }
+  ]
+};
+
+export default function Map({ selectedPlace, onPlaceSelect }: MapProps) {
+  const [markers, setMarkers] = useState<google.maps.LatLngLiteral[]>([]);
+  const [infoWindow, setInfoWindow] = useState<google.maps.places.PlaceResult | null>(null);
+  const mapRef = useRef<google.maps.Map | null>(null);
+
+  const { isLoaded, loadError } = useLoadScript({
+    googleMapsApiKey: "AIzaSyB21OpzJpaEzD4eMxvoARAcB2haW2o_bVw",
     libraries
   });
 
-  const [map, setMap] = useState<google.maps.Map | null>(null);
-
-  const onLoad = useCallback((map: google.maps.Map) => {
-    if (markers.length > 0) {
-      const bounds = new google.maps.LatLngBounds();
-      markers.forEach(marker => bounds.extend(marker.position));
-      map.fitBounds(bounds);
-    } else {
-      map.setCenter(center);
-      map.setZoom(13);
+  const onMapClick = useCallback((e: google.maps.MapMouseEvent) => {
+    if (e.latLng) {
+      setMarkers(prev => [...prev, { lat: e.latLng!.lat(), lng: e.latLng!.lng() }]);
     }
-    setMap(map);
-  }, [center, markers]);
-
-  const onUnmount = useCallback(() => {
-    setMap(null);
   }, []);
 
-  if (!isLoaded) {
-    return (
-      <div className="w-full h-full flex items-center justify-center bg-gray-100 rounded-lg">
-        <div className="text-gray-500">Loading map...</div>
-      </div>
-    );
-  }
+  const onMapLoad = useCallback((map: google.maps.Map) => {
+    mapRef.current = map;
+  }, []);
+
+  if (loadError) return <div>Error loading maps</div>;
+  if (!isLoaded) return <div>Loading maps...</div>;
 
   return (
     <GoogleMap
-      mapContainerClassName="w-full h-full rounded-lg"
-      center={center}
+      mapContainerStyle={mapContainerStyle}
       zoom={13}
-      onLoad={onLoad}
-      onUnmount={onUnmount}
-      options={{
-        disableDefaultUI: false,
-        zoomControl: true,
-        streetViewControl: true,
-        mapTypeControl: true,
-        styles: [
-          {
-            featureType: "poi",
-            elementType: "labels",
-            stylers: [{ visibility: "off" }],
-          },
-        ],
-      }}
+      center={selectedPlace?.geometry?.location || center}
+      onClick={onMapClick}
+      onLoad={onMapLoad}
+      options={options}
     >
       {markers.map((marker, index) => (
         <Marker
-          key={`${marker.position.lat}-${marker.position.lng}`}
-          position={marker.position}
-          title={marker.title}
-          label={{
-            text: getCategoryEmoji(marker.category),
-            fontSize: "24px",
-            className: "marker-label"
-          }}
-          icon={{
-            url: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
-            scaledSize: new google.maps.Size(1, 1)
+          key={index}
+          position={marker}
+          onClick={() => {
+            // You could add place details here if needed
           }}
         />
       ))}
+
+      {selectedPlace?.geometry?.location && (
+        <Marker
+          position={selectedPlace.geometry.location}
+          onClick={() => setInfoWindow(selectedPlace)}
+        />
+      )}
+
+      {infoWindow && (
+        <InfoWindow
+          position={infoWindow.geometry?.location}
+          onCloseClick={() => setInfoWindow(null)}
+        >
+          <div className="p-2">
+            <h3 className="font-bold">{infoWindow.name}</h3>
+            <p className="text-sm">{infoWindow.formatted_address}</p>
+            {infoWindow.rating && (
+              <p className="text-sm">Rating: {infoWindow.rating} ⭐</p>
+            )}
+          </div>
+        </InfoWindow>
+      )}
     </GoogleMap>
   );
 } 

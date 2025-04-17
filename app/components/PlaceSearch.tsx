@@ -35,6 +35,7 @@ export default function PlaceSearch({ onPlaceSelect, setCenter }: PlaceSearchPro
     },
     debounce: 300,
     cache: 24 * 60 * 60,
+    googleMapsApiKey: "AIzaSyB21OpzJpaEzD4eMxvoARAcB2haW2o_bVw"
   });
 
   useEffect(() => {
