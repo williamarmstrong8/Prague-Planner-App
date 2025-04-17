@@ -69,7 +69,7 @@ export default function Map({ selectedPlace, onPlaceSelect }: MapProps) {
   const mapRef = useRef<google.maps.Map | null>(null);
 
   const { isLoaded, loadError } = useLoadScript({
-    googleMapsApiKey: "AIzaSyB21OpzJpaEzD4eMxvoARAcB2haW2o_bVw",
+    googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '',
     libraries
   });
 
