@@ -110,16 +110,7 @@ export default function Home() {
               <h2 className="text-xl font-semibold mb-4">Recommended Places</h2>
               <RecommendedPlaces
                 onPlaceSelect={handlePlaceSelect}
-                selectedPlace={selectedPlace ? {
-                  id: selectedPlace.place_id || '',
-                  name: selectedPlace.name || '',
-                  description: selectedPlace.formatted_address || '',
-                  category: selectedPlace.types?.[0] || 'Site',
-                  location: {
-                    lat: selectedPlace.geometry?.location?.lat() || 0,
-                    lng: selectedPlace.geometry?.location?.lng() || 0
-                  }
-                } : null}
+                selectedPlace={selectedPlace}
               />
             </div>
           </div>

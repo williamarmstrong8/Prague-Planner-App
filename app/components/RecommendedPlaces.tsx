@@ -282,11 +282,11 @@ const recommendedPlaces: Place[] = [
 ];
 
 interface RecommendedPlacesProps {
-  onPlaceSelect: (place: Place) => void;
-  selectedPlaces: Place[];
+  onPlaceSelect: (place: google.maps.places.PlaceResult) => void;
+  selectedPlace: google.maps.places.PlaceResult | null;
 }
 
-export default function RecommendedPlaces({ onPlaceSelect, selectedPlaces }: RecommendedPlacesProps) {
+export default function RecommendedPlaces({ onPlaceSelect, selectedPlace }: RecommendedPlacesProps) {
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 4;
@@ -298,6 +298,20 @@ export default function RecommendedPlaces({ onPlaceSelect, selectedPlaces }: Rec
   const totalPages = Math.ceil(filteredPlaces.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const paginatedPlaces = filteredPlaces.slice(startIndex, startIndex + itemsPerPage);
+
+  const handlePlaceSelect = (place: Place) => {
+    // Convert Place to PlaceResult
+    const placeResult: google.maps.places.PlaceResult = {
+      place_id: place.id,
+      name: place.name,
+      formatted_address: place.description,
+      types: [place.category],
+      geometry: {
+        location: new google.maps.LatLng(place.location.lat, place.location.lng)
+      }
+    };
+    onPlaceSelect(placeResult);
+  };
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
@@ -334,11 +348,11 @@ export default function RecommendedPlaces({ onPlaceSelect, selectedPlaces }: Rec
           <div
             key={place.id}
             className={`p-3 rounded-lg border transition-all ${
-              selectedPlaces.some(p => p.id === place.id)
+              selectedPlace?.place_id === place.id
                 ? 'border-blue-500 bg-blue-50 shadow-sm'
                 : 'border-gray-200 hover:border-blue-300 hover:shadow-sm'
             } cursor-pointer`}
-            onClick={() => onPlaceSelect(place)}
+            onClick={() => handlePlaceSelect(place)}
           >
             <h3 className="font-medium text-gray-900">{place.name}</h3>
             <p className="text-sm text-gray-600 mt-1">{place.description}</p>
