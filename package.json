@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "vercel-build": "npm install --legacy-peer-deps && next build"
   },
   "dependencies": {
     "@react-google-maps/api": "^2.19.2",
@@ -27,5 +28,11 @@
     "postcss": "^8.4.32",
     "tailwindcss": "^3.4.0",
     "typescript": "^5.3.3"
+  },
+  "overrides": {
+    "@reach/combobox": {
+      "react": "^18.2.0",
+      "react-dom": "^18.2.0"
+    }
   }
 } 
